@@ -4,6 +4,13 @@ import numpy as np
 from PIL import Image
 import os
 
+# Fungsi preprocessing arsitektur yang dipakai di dalam model (layer Lambda saat training).
+# Model final = EfficientNetB0, jadi kita pakai efficientnet.preprocess_input.
+# Kalau kamu ganti model final ke arsitektur lain, ganti import & custom_objects di bawah:
+#   MobileNetV2 -> tf.keras.applications.mobilenet_v2.preprocess_input
+#   ResNet50    -> tf.keras.applications.resnet50.preprocess_input
+from tensorflow.keras.applications.efficientnet import preprocess_input as architecture_preprocess_input
+
 # ============ KONFIGURASI ============
 st.set_page_config(page_title="Klasifikasi Sampah", page_icon="🗑️", layout="centered")
 
@@ -42,9 +49,15 @@ def load_model():
         st.stop()
     # safe_mode=False diperlukan karena model ini punya layer Lambda (untuk
     # preprocessing khusus arsitektur MobileNetV2/ResNet50/EfficientNetB0).
+    # custom_objects diperlukan agar Keras tahu cara merekonstruksi fungsi
+    # yang dibungkus Lambda tersebut saat model di-load kembali.
     # Aman digunakan karena model ini kita buat & latih sendiri, bukan dari sumber
     # yang tidak dipercaya.
-    return tf.keras.models.load_model(MODEL_PATH, safe_mode=False)
+    return tf.keras.models.load_model(
+        MODEL_PATH,
+        custom_objects={"preprocess_input": architecture_preprocess_input},
+        safe_mode=False,
+    )
 
 
 model = load_model()
