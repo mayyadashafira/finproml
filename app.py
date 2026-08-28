@@ -4,8 +4,16 @@ import numpy as np
 from PIL import Image
 import os
 import time
+import datetime
 
 from tensorflow.keras.applications.efficientnet import preprocess_input as architecture_preprocess_input
+
+try:
+    from influxdb_client import InfluxDBClient, Point
+    from influxdb_client.client.write_api import SYNCHRONOUS
+    INFLUXDB_AVAILABLE = True
+except ImportError:
+    INFLUXDB_AVAILABLE = False
 
 # ============================================================
 # KONFIGURASI DASAR
@@ -257,6 +265,51 @@ def predict_image(pil_image, model):
 
 
 # ============================================================
+# MONITORING — kirim metrik ke InfluxDB Cloud (untuk dashboard Grafana)
+# ============================================================
+@st.cache_resource
+def get_influx_client():
+    """Buat koneksi ke InfluxDB Cloud. Return None kalau library/kredensial tidak tersedia
+    (app tetap jalan normal tanpa monitoring)."""
+    if not INFLUXDB_AVAILABLE:
+        return None
+    try:
+        required = {"INFLUXDB_URL", "INFLUXDB_TOKEN", "INFLUXDB_ORG", "INFLUXDB_BUCKET"}
+        if not required.issubset(st.secrets.keys()):
+            return None
+        client = InfluxDBClient(
+            url=st.secrets["INFLUXDB_URL"],
+            token=st.secrets["INFLUXDB_TOKEN"],
+            org=st.secrets["INFLUXDB_ORG"],
+        )
+        return client
+    except Exception:
+        # Kalau secrets belum dikonfigurasi sama sekali (misal saat run lokal tanpa secrets.toml),
+        # jangan sampai app crash -- monitoring cuma fitur tambahan, bukan fitur inti.
+        return None
+
+
+def log_prediction_metric(pred_label, confidence):
+    """Kirim satu titik data (1 prediksi) ke InfluxDB Cloud. Gagal diam-diam kalau
+    monitoring belum di-setup, supaya tidak mengganggu fitur klasifikasi utama."""
+    client = get_influx_client()
+    if client is None:
+        return
+    try:
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        point = (
+            Point("klasifikasi_sampah")
+            .tag("kelas", pred_label)
+            .field("confidence", float(confidence))
+            .field("count", 1)
+            .time(datetime.datetime.utcnow())
+        )
+        write_api.write(bucket=st.secrets["INFLUXDB_BUCKET"], record=point)
+    except Exception:
+        pass  # monitoring tidak boleh menghentikan fitur utama kalau ada masalah koneksi
+
+
+# ============================================================
 # HALAMAN: BERANDA
 # ============================================================
 def render_beranda():
@@ -402,6 +455,7 @@ def render_klasifikasi():
             st.session_state.session_count += 1
             st.session_state.session_conf_sum += confidence
             st.session_state.last_file_id = uploaded_file.name
+            log_prediction_metric(pred_label, confidence)  # kirim ke InfluxDB untuk dashboard Grafana
 
         with col2:
             st.markdown(
