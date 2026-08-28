@@ -40,7 +40,11 @@ def load_model():
             "Pastikan file model sudah ditambahkan ke repository (lihat README)."
         )
         st.stop()
-    return tf.keras.models.load_model(MODEL_PATH)
+    # safe_mode=False diperlukan karena model ini punya layer Lambda (untuk
+    # preprocessing khusus arsitektur MobileNetV2/ResNet50/EfficientNetB0).
+    # Aman digunakan karena model ini kita buat & latih sendiri, bukan dari sumber
+    # yang tidak dipercaya.
+    return tf.keras.models.load_model(MODEL_PATH, safe_mode=False)
 
 
 model = load_model()
