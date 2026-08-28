@@ -77,7 +77,7 @@ if uploaded_file is not None:
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.image(image, caption="Gambar yang diupload", use_container_width=True)
+        st.image(image, caption="Gambar yang diupload", width="stretch")
 
     # Preprocessing: HARUS SAMA dengan yang dipakai saat training
     # (generator training memakai rescale=1./255, model sudah punya layer
