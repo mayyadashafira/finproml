@@ -6,7 +6,11 @@ import os
 import time
 import datetime
 
-from tensorflow.keras.applications.efficientnet import preprocess_input as architecture_preprocess_input
+# PENTING: fungsi preprocessing HARUS sama persis dengan arsitektur base model dari
+# file .keras yang dipakai. Model final sekarang = MobileNetV2 (bukan EfficientNetB0),
+# jadi importnya WAJIB dari mobilenet_v2 -- kalau salah, model tetap "berhasil" di-load
+# tapi hasil prediksinya jadi salah karena preprocessing yang diterapkan tidak sesuai.
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as architecture_preprocess_input
 
 try:
     from influxdb_client import InfluxDBClient, Point
@@ -83,11 +87,11 @@ CLASS_INFO = {
 }
 
 MODEL_METRICS = {
-    "Baseline CNN": 0.8148,
-    "MobileNetV2": 0.9839,
-    "ResNet50": 0.9763,
-    "EfficientNetB0 (sebelum tuning)": 0.9848,
-    "EfficientNetB0 (final, setelah fine-tuning)": 0.9886,
+    "Baseline CNN": 0.7502,
+    "ResNet50 (sebelum tuning)": 0.9715,
+    "MobileNetV2 (sebelum tuning)": 0.9763,
+    "EfficientNetB0 (sebelum tuning)": 0.9763,
+    "MobileNetV2 (final, setelah fine-tuning)": 0.9839,
 }
 
 DATASET_DISTRIBUTION = {
@@ -199,6 +203,26 @@ st.markdown(
     }
 
     .pp-footer { text-align: center; color: var(--pp-muted); font-size: 0.8rem; margin-top: 3rem; padding: 1.5rem 0; }
+
+    /* ---- Upload dropzone (Klasifikasi page) ---- */
+    [data-testid="stFileUploaderDropzone"] {
+        background: linear-gradient(135deg, #FEF9E7 0%, #EFF6FF 100%) !important;
+        border: 2px dashed var(--pp-blue) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        background: var(--pp-blue) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] svg { color: var(--pp-blue) !important; }
+    [data-testid="stFileUploaderDropzoneInstructions"] span,
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
+        color: var(--pp-text) !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -365,14 +389,34 @@ def render_beranda():
                 <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:1rem;">
             """
             + "".join(
-                f'<span style="background:white; padding:6px 12px; border-radius:999px; '
-                f'font-size:0.8rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.08);">'
+                f'<span style="background:white; color:#1E293B; padding:6px 12px; '
+                f'border-radius:999px; font-size:0.8rem; font-weight:600; '
+                f'box-shadow:0 1px 2px rgba(0,0,0,0.08);">'
                 f'{info["emoji"]} {info["nama"]}</span>'
                 for info in CLASS_INFO.values()
             )
             + "</div></div>",
             unsafe_allow_html=True,
         )
+
+    st.write("")
+    st.write("")
+    st.markdown('<div class="pp-section-title">Cara Kerja</div>', unsafe_allow_html=True)
+    st.markdown('<div class="pp-section-underline"></div>', unsafe_allow_html=True)
+    hc1, hc2, hc3 = st.columns(3)
+    how_it_works = [
+        ("1️⃣", "Upload Foto", "Ambil atau upload foto sampah yang mau kamu identifikasi"),
+        ("2️⃣", "AI Menganalisis", "Model AI memproses gambar dan mengenali pola visualnya dalam hitungan detik"),
+        ("3️⃣", "Dapatkan Hasil", "Lihat kategori sampah beserta confidence score dan tips cara membuangnya"),
+    ]
+    for col, (num, title, desc) in zip([hc1, hc2, hc3], how_it_works):
+        with col:
+            st.markdown(
+                f'<div class="pp-card" style="text-align:center;">'
+                f'<div style="font-size:1.8rem;">{num}</div>'
+                f'<h4>{title}</h4><p>{desc}</p></div>',
+                unsafe_allow_html=True,
+            )
 
     st.write("")
     st.write("")
@@ -431,7 +475,15 @@ def render_klasifikasi():
         )
         return
 
-    uploaded_file = st.file_uploader("Pilih gambar sampah...", type=["jpg", "jpeg", "png"])
+    st.markdown(
+        '<p style="font-weight:600; color:#1E293B; margin-bottom:0.4rem;">📤 Upload Foto Sampah</p>',
+        unsafe_allow_html=True,
+    )
+    uploaded_file = st.file_uploader(
+        "Seret & lepas gambar di sini, atau klik untuk pilih file (JPG/JPEG/PNG)",
+        type=["jpg", "jpeg", "png"],
+        label_visibility="visible",
+    )
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -530,8 +582,8 @@ def render_statistik():
     stats = [
         ("🖼️", "7.018", "Total gambar dataset"),
         ("🏷️", "6", "Kelas sampah"),
-        ("🎯", "98.86%", "Best validation accuracy"),
-        ("🧠", "EfficientNetB0", "Arsitektur model final"),
+        ("🎯", "98.39%", "Best validation accuracy"),
+        ("🧠", "MobileNetV2", "Arsitektur model final"),
     ]
     for col, (icon, val, label) in zip([s1, s2, s3, s4], stats):
         with col:
@@ -551,8 +603,9 @@ def render_statistik():
         st.bar_chart(MODEL_METRICS)
         st.caption(
             "Baseline CNN dilatih dari nol, sisanya menggunakan transfer learning dari model ImageNet. "
-            "EfficientNetB0 hasil fine-tuning dipilih sebagai model final karena val accuracy tertinggi "
-            "dengan val loss terendah."
+            "MobileNetV2, ResNet50, dan EfficientNetB0 sempat seri/berdekatan di percobaan awal (±97%), "
+            "tapi MobileNetV2 hasil fine-tuning (lr=1e-4) tampil sebagai model final karena val accuracy "
+            "tertinggi (98.39%) dengan gap train-validation paling kecil (0.31%)."
         )
 
     with right:
@@ -568,10 +621,14 @@ def render_statistik():
         """
         <div class="pp-card">
         <h4 style="margin-top:0;">📝 Catatan Evaluasi</h4>
-        <p>Model final diuji pada test set (15% dari data, ~1.053 gambar) dengan hasil akurasi sekitar 98.6%.
-        Sebagai sanity-check tambahan, model juga diuji pada folder <i>test</i> bawaan dataset asli
-        (157 gambar) dan menghasilkan akurasi 75.8% — kesenjangan ini kemungkinan disebabkan oleh
-        ukuran sampel yang kecil dan perbedaan kondisi pengambilan gambar pada sumber data tersebut.</p>
+        <p>Model final (MobileNetV2, fine-tuned) diuji pada test set (15% dari data, ~1.053 gambar)
+        dengan hasil akurasi keseluruhan 98% (weighted F1-score 0.98). Kesalahan yang paling sering
+        terjadi adalah kelas <b>Botol Plastik</b> yang terprediksi sebagai <b>Kaca</b> — wajar karena
+        keduanya sering sama-sama transparan/mengkilap secara visual.</p>
+        <p>Sebagai sanity-check tambahan, model juga diuji pada folder <i>test</i> bawaan dataset asli
+        (157 gambar, timpang antar kelas) dan menghasilkan akurasi 70.7% — kesenjangan ini kemungkinan
+        disebabkan oleh ukuran sampel yang kecil dan perbedaan kondisi pengambilan gambar pada sumber
+        data tersebut, bukan indikasi model yang buruk.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -618,9 +675,10 @@ def render_tentang():
             """
             <div class="pp-card">
             <h4 style="margin-top:0;">🛠️ Teknologi</h4>
-            <p><b>Model:</b> EfficientNetB0 (transfer learning + fine-tuning)</p>
+            <p><b>Model:</b> MobileNetV2 (transfer learning + fine-tuning)</p>
             <p><b>Framework:</b> TensorFlow / Keras</p>
             <p><b>Deployment:</b> Streamlit Community Cloud</p>
+            <p><b>Monitoring:</b> InfluxDB Cloud + Grafana Cloud</p>
             <p><b>Pipeline:</b> ETL → EDA → Preprocessing → Modeling → Evaluasi → Deployment</p>
             </div>
             """,
