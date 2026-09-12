@@ -17,6 +17,7 @@ except ImportError:
 
 
 # KONFIGURASI DASAR
+
 st.set_page_config(
     page_title="Pilah Pilih — Klasifikasi Sampah AI",
     page_icon="♻️",
@@ -119,31 +120,32 @@ st.markdown(
 
     .stApp {
         background:
-            radial-gradient(circle at 8% 15%, rgba(37,99,235,0.09) 0%, transparent 42%),
-            radial-gradient(circle at 92% 10%, rgba(251,191,36,0.14) 0%, transparent 40%),
-            radial-gradient(circle at 88% 78%, rgba(22,163,74,0.09) 0%, transparent 42%),
-            radial-gradient(circle at 12% 85%, rgba(37,99,235,0.08) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(251,191,36,0.05) 0%, transparent 60%),
+            radial-gradient(circle at 8% 15%, rgba(37,99,235,0.22) 0%, transparent 45%),
+            radial-gradient(circle at 92% 10%, rgba(251,191,36,0.30) 0%, transparent 45%),
+            radial-gradient(circle at 88% 78%, rgba(22,163,74,0.22) 0%, transparent 48%),
+            radial-gradient(circle at 12% 85%, rgba(37,99,235,0.20) 0%, transparent 45%),
+            radial-gradient(circle at 50% 50%, rgba(251,191,36,0.12) 0%, transparent 65%),
             var(--pp-bg);
         background-attachment: fixed;
     }
 
     /* Elemen dekoratif bertema sampah/lingkungan, mengambang pelan di belakang konten */
     .pp-floaty {
-        position: fixed; z-index: 0; opacity: 0.16; font-size: 2.4rem;
+        position: fixed; z-index: 0; opacity: 0.35; font-size: 4.5rem;
         animation: pp-float 6s ease-in-out infinite;
         pointer-events: none;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
     }
     @keyframes pp-float {
         0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-18px) rotate(8deg); }
+        50% { transform: translateY(-22px) rotate(8deg); }
     }
-    .pp-floaty.f1 { top: 8%;  left: 4%;  animation-delay: 0s; }
-    .pp-floaty.f2 { top: 20%; right: 6%; animation-delay: 1.2s; font-size: 2rem; }
-    .pp-floaty.f3 { top: 55%; left: 2%;  animation-delay: 2.4s; font-size: 2.1rem; }
-    .pp-floaty.f4 { top: 70%; right: 4%; animation-delay: 0.8s; }
-    .pp-floaty.f5 { top: 88%; left: 10%; animation-delay: 1.8s; font-size: 1.8rem; }
-    .pp-floaty.f6 { top: 40%; right: 2%; animation-delay: 3s;   font-size: 1.6rem; }
+    .pp-floaty.f1 { top: 8%;  left: 3%;  animation-delay: 0s; }
+    .pp-floaty.f2 { top: 18%; right: 4%; animation-delay: 1.2s; font-size: 3.8rem; }
+    .pp-floaty.f3 { top: 55%; left: 1%;  animation-delay: 2.4s; font-size: 4rem; }
+    .pp-floaty.f4 { top: 68%; right: 3%; animation-delay: 0.8s; }
+    .pp-floaty.f5 { top: 87%; left: 8%;  animation-delay: 1.8s; font-size: 3.5rem; }
+    .pp-floaty.f6 { top: 38%; right: 1%; animation-delay: 3s;   font-size: 3.2rem; }
 
     /* Konten utama tetap di atas elemen dekoratif */
     .block-container { position: relative; z-index: 1; }
@@ -233,10 +235,22 @@ st.markdown(
     .stButton>button {
         border-radius: 10px;
         font-weight: 600;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .stButton>button[kind="primary"] {
-        background-color: var(--pp-blue);
-        border: none;
+        background-color: var(--pp-blue) !important;
+        color: white !important;
+        border: none !important;
+    }
+    /* Tombol nav non-aktif & CTA sekunder — dipaksa terang, TIDAK ikut tema dark/light sistem */
+    .stButton>button[kind="secondary"] {
+        background-color: white !important;
+        color: var(--pp-text) !important;
+        border: 1px solid #E2E8F0 !important;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(37,99,235,0.18);
     }
 
     .pp-footer { text-align: center; color: var(--pp-muted); font-size: 0.8rem; margin-top: 3rem; padding: 1.5rem 0; }
