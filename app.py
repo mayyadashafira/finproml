@@ -6,10 +6,6 @@ import os
 import time
 import datetime
 
-# PENTING: fungsi preprocessing HARUS sama persis dengan arsitektur base model dari
-# file .keras yang dipakai. Model final sekarang = MobileNetV2 (bukan EfficientNetB0),
-# jadi importnya WAJIB dari mobilenet_v2 -- kalau salah, model tetap "berhasil" di-load
-# tapi hasil prediksinya jadi salah karena preprocessing yang diterapkan tidak sesuai.
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as architecture_preprocess_input
 
 try:
@@ -19,9 +15,8 @@ try:
 except ImportError:
     INFLUXDB_AVAILABLE = False
 
-# ============================================================
+
 # KONFIGURASI DASAR
-# ============================================================
 st.set_page_config(
     page_title="Pilah Pilih — Klasifikasi Sampah AI",
     page_icon="♻️",
@@ -103,9 +98,9 @@ DATASET_DISTRIBUTION = {
     "Kertas_Karton": 1042,
 }
 
-# ============================================================
+
 # CUSTOM CSS — tema biru & kuning senada dengan referensi
-# ============================================================
+
 st.markdown(
     """
     <style>
@@ -122,7 +117,49 @@ st.markdown(
         --pp-muted: #64748B;
     }
 
-    .stApp { background-color: var(--pp-bg); }
+    .stApp {
+        background:
+            radial-gradient(circle at 8% 15%, rgba(37,99,235,0.09) 0%, transparent 42%),
+            radial-gradient(circle at 92% 10%, rgba(251,191,36,0.14) 0%, transparent 40%),
+            radial-gradient(circle at 88% 78%, rgba(22,163,74,0.09) 0%, transparent 42%),
+            radial-gradient(circle at 12% 85%, rgba(37,99,235,0.08) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(251,191,36,0.05) 0%, transparent 60%),
+            var(--pp-bg);
+        background-attachment: fixed;
+    }
+
+    /* Elemen dekoratif bertema sampah/lingkungan, mengambang pelan di belakang konten */
+    .pp-floaty {
+        position: fixed; z-index: 0; opacity: 0.16; font-size: 2.4rem;
+        animation: pp-float 6s ease-in-out infinite;
+        pointer-events: none;
+    }
+    @keyframes pp-float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-18px) rotate(8deg); }
+    }
+    .pp-floaty.f1 { top: 8%;  left: 4%;  animation-delay: 0s; }
+    .pp-floaty.f2 { top: 20%; right: 6%; animation-delay: 1.2s; font-size: 2rem; }
+    .pp-floaty.f3 { top: 55%; left: 2%;  animation-delay: 2.4s; font-size: 2.1rem; }
+    .pp-floaty.f4 { top: 70%; right: 4%; animation-delay: 0.8s; }
+    .pp-floaty.f5 { top: 88%; left: 10%; animation-delay: 1.8s; font-size: 1.8rem; }
+    .pp-floaty.f6 { top: 40%; right: 2%; animation-delay: 3s;   font-size: 1.6rem; }
+
+    /* Konten utama tetap di atas elemen dekoratif */
+    .block-container { position: relative; z-index: 1; }
+
+    /* Kartu jadi sedikit interaktif saat disentuh mouse */
+    .pp-card, .pp-class-card, .pp-stat-card {
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .pp-card:hover, .pp-class-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 24px rgba(37,99,235,0.14);
+    }
+    .pp-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+    }
 
     .block-container { padding-top: 2rem; max-width: 1100px; }
 
@@ -228,9 +265,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ============================================================
+# Elemen dekoratif mengambang bertema sampah/lingkungan — tampil di semua halaman
+st.markdown(
+    """
+    <div class="pp-floaty f1">♻️</div>
+    <div class="pp-floaty f2">🍃</div>
+    <div class="pp-floaty f3">🌱</div>
+    <div class="pp-floaty f4">🗑️</div>
+    <div class="pp-floaty f5">🍾</div>
+    <div class="pp-floaty f6">🧃</div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # STATE & NAVIGASI
-# ============================================================
+
 if "page" not in st.session_state:
     st.session_state.page = "Beranda"
 if "session_count" not in st.session_state:
@@ -266,9 +316,9 @@ for i, page_name in enumerate(PAGES):
 st.write("")
 
 
-# ============================================================
+
 # MODEL LOADING (dipakai di halaman Klasifikasi)
-# ============================================================
+
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
@@ -288,9 +338,9 @@ def predict_image(pil_image, model):
     return pred_probs
 
 
-# ============================================================
+
 # MONITORING — kirim metrik ke InfluxDB Cloud (untuk dashboard Grafana)
-# ============================================================
+
 @st.cache_resource
 def get_influx_client():
     """Buat koneksi ke InfluxDB Cloud. Return None kalau library/kredensial tidak tersedia
@@ -333,9 +383,9 @@ def log_prediction_metric(pred_label, confidence):
         pass  # monitoring tidak boleh menghentikan fitur utama kalau ada masalah koneksi
 
 
-# ============================================================
+
 # HALAMAN: BERANDA
-# ============================================================
+
 def render_beranda():
     left, right = st.columns([1.1, 1])
 
@@ -459,9 +509,9 @@ def render_beranda():
         st.caption("Statistik ini dihitung dari sesi kamu saat ini, akan reset kalau halaman di-refresh.")
 
 
-# ============================================================
+
 # HALAMAN: KLASIFIKASI
-# ============================================================
+
 def render_klasifikasi():
     st.markdown('<div class="pp-section-title">Klasifikasi Sampah</div>', unsafe_allow_html=True)
     st.markdown('<div class="pp-section-underline"></div>', unsafe_allow_html=True)
@@ -540,9 +590,9 @@ def render_klasifikasi():
         st.info("👆 Silakan upload gambar untuk memulai prediksi.")
 
 
-# ============================================================
+
 # HALAMAN: PANDUAN SAMPAH
-# ============================================================
+
 def render_panduan():
     st.markdown('<div class="pp-section-title">Panduan Jenis Sampah</div>', unsafe_allow_html=True)
     st.markdown('<div class="pp-section-underline"></div>', unsafe_allow_html=True)
@@ -571,9 +621,9 @@ def render_panduan():
         st.write("")
 
 
-# ============================================================
+
 # HALAMAN: STATISTIK
-# ============================================================
+
 def render_statistik():
     st.markdown('<div class="pp-section-title">Statistik Model</div>', unsafe_allow_html=True)
     st.markdown('<div class="pp-section-underline"></div>', unsafe_allow_html=True)
@@ -635,9 +685,9 @@ def render_statistik():
     )
 
 
-# ============================================================
+
 # HALAMAN: TENTANG
-# ============================================================
+
 def render_tentang():
     st.markdown('<div class="pp-section-title">Tentang Project</div>', unsafe_allow_html=True)
     st.markdown('<div class="pp-section-underline"></div>', unsafe_allow_html=True)
@@ -698,9 +748,9 @@ def render_tentang():
     )
 
 
-# ============================================================
+
 # ROUTER
-# ============================================================
+
 if st.session_state.page == "Beranda":
     render_beranda()
 elif st.session_state.page == "Klasifikasi":
