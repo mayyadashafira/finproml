@@ -754,7 +754,7 @@ def render_tentang():
         """
         <div class="pp-card">
         <h4 style="margin-top:0;">⚠️ Catatan</h4>
-        <p>Aplikasi ini dibuat sebagai bagian dari Final Project mata kuliah Machine Learning
+        <p>Aplikasi ini dibuat sebagai bagian dari Final Project Machine Learning
         dan bersifat prototipe edukatif — belum divalidasi untuk penggunaan produksi skala besar.</p>
         </div>
         """,
